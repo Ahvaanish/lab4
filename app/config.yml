@@ -1,17 +1,22 @@
 # Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
-# Define the job to test the Java project
+# Define the job to test the Android project
 jobs:
-  test-java:
-    # Specify the execution environment using a CircleCI convenience Docker image for Java.
+  test-android:
+    # Specify the execution environment using a CircleCI Docker image for Android.
     docker:
-      - image: circleci/openjdk:17-jdk-bullseye # Use the appropriate JDK version
+      - image: circleci/android:api-30
 
     # Add steps to execute within the job
     steps:
-      - checkout # Checkout the code from the repository
+      # Checkout the code from the repository
+      - checkout
+
+      # Download Android dependencies
+      - run:
+          name: Install Dependencies
+          command: sdkmanager --install "platforms;android-30" "build-tools;30.0.3" "platform-tools"
 
       # Restore dependencies cache
       - restore_cache:
@@ -22,11 +27,15 @@ jobs:
       # Run Gradle commands to build and test the project
       - run:
           name: Build Project
-          command: ./gradlew build
+          command: ./gradlew assembleDebug
 
       - run:
-          name: Run Tests
-          command: ./gradlew test
+          name: Run Unit Tests
+          command: ./gradlew testDebugUnitTest
+
+      - run:
+          name: Run Instrumentation Tests
+          command: ./gradlew connectedAndroidTest
 
       # Save dependencies cache
       - save_cache:
@@ -36,14 +45,14 @@ jobs:
 
       # Store test results for CircleCI Test Summary
       - store_test_results:
-          path: build/test-results/test
+          path: build/test-results
 
-      # Store build artifacts (e.g., JAR files or logs)
+      # Store build artifacts (e.g., APK files or logs)
       - store_artifacts:
-          path: build/libs
+          path: build/outputs/apk
 
 # Define the workflow to orchestrate the job
 workflows:
-  test-java-workflow:
+  test-android-workflow:
     jobs:
-      - test-java
+      - test-android
